@@ -1,0 +1,175 @@
+
+const WINDOW_WIDTH = 640
+const WINDOW_HEIGHT = 640
+const BOX = WINDOW_HEIGHT/10
+
+const UP: SDL_Rect = {0, -1, BOX, BOX}
+const DOWN: SDL_Rect = {0, 1, BOX, BOX}
+const LEFT: SDL_Rect = {-1, 0, BOX, BOX}
+const RIGHT: SDL_Rect = {1, 0, BOX, BOX}
+
+let gameActive = 1
+let direction: SDL_Rect = {0, 0, 0, 0}
+let snake[100]: SDL_Rect = {(SDL_Rect){4 * BOX, 4 * BOX, BOX, BOX}}
+let snakeLength = 1
+let food: SDL_Rect = {6 * BOX, 4 * BOX, BOX, BOX}
+let tickCounter = 0
+const tickTime = 12
+let selectedNewDirection: int = 0
+
+fn main(argc: int, argv: char**) -> int
+    if SDL_Init(SDL_INIT_EVERYTHING) < 0
+        SDL_Quit()
+        return 1
+    
+    let window: SDL_Window* = SDL_CreateWindow("snake", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, 0)
+    
+    if !window
+        SDL_Quit()
+        return 1
+    
+    let renderer: SDL_Renderer* = SDL_CreateRenderer(window, -1, 0)
+    
+    if !renderer
+        SDL_Quit()
+        return 1
+    
+    GameLoop(renderer)
+    SDL_Quit()
+    return 1
+
+fn GameLoop(renderer: SDL_Renderer*)
+    let now: int = time(NULL)
+    let then: int
+    
+    
+    while gameActive == 1
+        then = now
+        GetInput()
+        Update()
+        Draw(renderer)
+        now = time(NULL)
+        let delta = now - then
+        SDL_Delay(16-delta)
+
+fn Update()
+    if tickCounter < tickTime
+        tickCounter++
+        return
+    
+    UpdateSnake()
+    UpdateFood()
+    tickCounter = 0
+    selectedNewDirection = 0
+
+
+fn UpdateSnake()
+    let nextPoint: SDL_Rect = {snake[0].x + (direction.x * BOX), snake[0].y + (direction.y * BOX), BOX, BOX}
+
+    let i: int = snakeLength -1
+    while i > 0
+        snake[i] = snake[i - 1]
+        i--
+    
+    snake[0] = nextPoint
+
+    i = 1
+    while i < snakeLength
+        if snake[i].x == snake[0].x && snake[i].y == snake[0].y
+            gameActive = 0
+
+        if snake[0].x < 0 * BOX || snake[0].x > 9 * BOX || snake[0].y < 0 * BOX || snake[0].y > 9 * BOX
+            gameActive = 0
+        i++
+
+
+fn UpdateFood()
+    if isTouchingSnake(food) == 1
+        snake[snakeLength] = snake[snakeLength - 1]
+        snakeLength++
+
+    
+    while isTouchingSnake(food)
+        food = (SDL_Rect){random(9) * BOX, random(9) * BOX, BOX, BOX}
+
+
+fn Draw(renderer: SDL_Renderer*)
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255)
+    SDL_RenderClear(renderer)
+    DrawSnake(renderer)
+    DrawFood(renderer)
+    SDL_RenderPresent(renderer)
+
+
+fn DrawSnake(renderer: SDL_Renderer*)
+    SDL_SetRenderDrawColor(renderer, 159, 220, 5, 255)
+    
+    let i: int = 0
+    while i < snakeLength
+        SDL_RenderDrawRect(renderer, &snake[i])
+        i++
+
+
+fn DrawFood(renderer: SDL_Renderer*)
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255)
+    SDL_RenderDrawRect(renderer, &food)
+
+fn GetInput()
+    let event: SDL_Event
+    SDL_PollEvent(&event)
+
+    if event.key.state != SDL_PRESSED || selectedNewDirection == 1
+        return
+    
+    let key = event.key.keysym.sym
+
+    if key == SDLK_ESCAPE
+        gameActive = 0
+        return
+    
+    if key == SDLK_UP
+        if direction.x == DOWN.x && direction.y == DOWN.y
+            return
+            
+        direction = UP
+        selectedNewDirection = 1
+        return
+    
+    if key == SDLK_DOWN
+        if direction.x == UP.x && direction.y == UP.y
+            return
+            
+        direction = DOWN
+        selectedNewDirection = 1  
+        return
+
+    if key == SDLK_LEFT
+        if direction.x == RIGHT.x && direction.y == RIGHT.y
+            return
+            
+        direction = LEFT
+        selectedNewDirection = 1
+        return
+    
+    if key == SDLK_RIGHT
+        if direction.x == LEFT.x && direction.y == LEFT.y
+            return
+        
+        direction = RIGHT
+        selectedNewDirection = 1
+        return
+    
+    return
+
+fn random(max: int) -> int
+    return rand() % max
+
+fn isTouchingSnake(rect: SDL_Rect) -> int
+    let i: int = 0
+    while i < snakeLength
+        if rect.x == snake[i].x && rect.y == snake[i].y
+            return 1
+   
+        i++
+    
+    return 0
