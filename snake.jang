@@ -1,3 +1,4 @@
+import SDL
 
 const WINDOW_WIDTH = 640
 const WINDOW_HEIGHT = 640
